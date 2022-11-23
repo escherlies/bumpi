@@ -1,10 +1,14 @@
+{-# LANGUAGE InstanceSigs #-}
+
 module Cli where
 
 import Data.List (intersperse)
-import Data.Text as T (Text)
+import Data.String (IsString (fromString))
+import Data.Text as T (Text, pack, unpack)
+import qualified Data.Text.IO as T
 
 
-esc :: T.Text
+esc :: Text
 esc = "\ESC"
 
 
@@ -12,47 +16,76 @@ resetStyle :: Text
 resetStyle = esc <> "[0m"
 
 
--- sample = ln [] [
---     el [] ("Hello, ")
---   , el [] ("World!")
--- ]
--- > lnStyles <> helloStyles <> "hello" <> resetHelloStyles <> worldStyles <> "World!" <> resetWorldStyles <> resetLnStylef
-
--- ln attrs desc =
---   applyStyles
---     attrs
---     ( T.unwords $ fmap applyStyles desc
---     )
-
 data Element = Element [Style] Text
 
 
-sampleTxt :: Text
-sampleTxt = applyStyles sample
+instance IsString Element where
+  fromString :: String -> Element
+  fromString s = Element [] (T.pack s)
 
 
-sample :: Element
+instance Show Element where
+  show :: Element -> String
+  show = unpack . styled
+
+
+putSample :: IO ()
+putSample = T.putStrLn sample
+
+
+sample :: Text
 sample =
-  line
-    []
-    [ el
-        [ bgColor Red
-        , fgColor Yellow
-        ]
-        "Hello, "
-    , el
-        [ bgColor Magenta
-        , fgColor Black
-        ]
-        "World!"
-    ]
+  styled $
+    line
+      [ underline
+      , bgColor Cyan
+      ]
+      [ el
+          [ bgColor Red
+          , fgColor Yellow
+          ]
+          "Hello, "
+      , "awesome "
+      , el
+          [ bgColor Magenta
+          , fgColor Black
+          ]
+          "World!"
+      , "\n"
+      , line
+          []
+          ( intersperse
+              "\n"
+              [ el [bold] "bold"
+              , el [dim] "dim"
+              , el [italic] "italic"
+              , el [underline] "underline"
+              , el [blinking] "blinking"
+              , el [inverse] "inverse"
+              , el [hidden] "hidden"
+              , el [strikethrough] "strikethrough"
+              ]
+          )
+      ]
+
+
+putStyledLn :: [Style] -> [Element] -> IO ()
+putStyledLn attrs = T.putStrLn . styled . line attrs
+
+
+putLines :: [Element] -> IO ()
+putLines = T.putStrLn . lns
+
+
+lns :: [Element] -> Text
+lns = foldl (<>) "" . intersperse "\n" . (styled <$>)
 
 
 line :: [Style] -> [Element] -> Element
 line attrs els =
   el
     attrs
-    (join' $ applyStyles <$> els)
+    (join' $ applyStylesWith attrs <$> els)
 
 
 join' :: [Text] -> Text
@@ -63,9 +96,14 @@ el :: [Style] -> Text -> Element
 el = Element
 
 
-applyStyles :: Element -> Text
-applyStyles (Element styles text) =
+styled :: Element -> Text
+styled (Element styles text) =
   addStyle styles <> text <> resetStyle
+
+
+applyStylesWith :: [Style] -> Element -> Text
+applyStylesWith parentStyles (Element styles text) =
+  addStyle (parentStyles <> styles) <> text <> resetStyle
 
 
 addStyle :: [Style] -> Text

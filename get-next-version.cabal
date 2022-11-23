@@ -19,7 +19,7 @@ maintainer:         e.scherlies@pm.me
 -- A copyright notice.
 -- copyright:
 -- category:
-extra-source-files: CHANGELOG.md
+-- extra-source-files: CHANGELOG.md
 
 executable get-next-version-x
   hs-source-dirs:   

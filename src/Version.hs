@@ -2,6 +2,7 @@
 
 module Version where
 
+import Data.List (intersperse)
 import Data.String (IsString (fromString))
 import GHC.Utils.Misc (split)
 
@@ -18,26 +19,33 @@ data Bump
 
 instance IsString Version where
   fromString :: String -> Version
-  fromString = parseString
+  fromString = dropPrefix
 
 
 instance IsString Bump where
   fromString :: String -> Bump
-  -- Major keywords
-  fromString "major" = Major
-  fromString "breaking" = Major
-  fromString "br" = Major
-  fromString "b" = Major
-  -- Minor
-  fromString "minor" = Minor
-  fromString "feature" = Minor
-  fromString "feat" = Minor
-  fromString "f" = Minor
-  -- Patch
-  fromString "patch" = Patch
-  fromString "fix" = Patch
-  fromString "x" = Patch
-  fromString other = error $ "Bump keyword " <> other <> " not recognized"
+  fromString s
+    | s `elem` majorKeywords = Major
+    | s `elem` minorKeywords = Minor
+    | s `elem` patchKeywords = Patch
+    | otherwise = error $ "Bump keyword " <> s <> " not recognized"
+
+
+showKeywords :: String
+showKeywords =
+  foldl (<>) "" $ intersperse ", " $ concat [majorKeywords, minorKeywords, patchKeywords]
+
+
+majorKeywords :: [String]
+majorKeywords = ["major", "breaking", "br", "b", "!"]
+
+
+minorKeywords :: [String]
+minorKeywords = ["minor", "feature", "feat", "f"]
+
+
+patchKeywords :: [String]
+patchKeywords = ["patch", "fix", "x"]
 
 
 instance Show Version where
@@ -45,13 +53,13 @@ instance Show Version where
   show (Version major minor patch) = "v" <> show major <> "." <> show minor <> "." <> show patch
 
 
+dropPrefix :: String -> Version
+dropPrefix ('v' : mmp) = parseString mmp
+dropPrefix mmp = parseString mmp
+
+
 parseString :: String -> Version
-parseString ('v' : mmp) = parseWithoutPrefix mmp
-parseString mmp = parseWithoutPrefix mmp
-
-
-parseWithoutPrefix :: String -> Version
-parseWithoutPrefix mmp = fromList $ read <$> split '.' mmp
+parseString mmp = fromList $ read <$> split '.' mmp
 
 
 fromList :: [Int] -> Version
@@ -68,15 +76,3 @@ bump b (Version major minor patch) =
       Version major (minor + 1) 0
     Patch ->
       Version major minor (patch + 1)
-
-
-bumpMajor :: Version -> Version
-bumpMajor = bump Major
-
-
-bumpMinor :: Version -> Version
-bumpMinor = bump Minor
-
-
-bumpPatch :: Version -> Version
-bumpPatch = bump Patch
