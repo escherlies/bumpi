@@ -1,6 +1,6 @@
 # Bumpi - a get next semantic version bump cli tool
 
-Interactivly get the next version based on your latest git tag and your last commits:
+Interactivly get the next version based on your latest git version tag and your last commits:
 
 ![Usage](./docs/Usage.png)
 
@@ -11,8 +11,10 @@ That's it!
 Binaries available soon!
 
 ```bash
+# Install
 cabal install
 
+# Run
 get-next-version
 ```
 
@@ -29,5 +31,4 @@ I wanted a tool that just bumps my version based on my git. But all of the tools
   - [thenativeweb/get-next-version](https://github.com/thenativeweb/get-next-version) Uses conventional commits.
   - [c4urself/bump2version](https://github.com/c4urself/bump2version) For Python.
 
-So bumpi does just one thing and that's it.
-
+So bumpi does just one thing and that's it. :)
