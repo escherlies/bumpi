@@ -1,5 +1,5 @@
 cabal-version:      2.4
-name:               get-next-version
+name:               bumpi
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
@@ -21,7 +21,7 @@ maintainer:         e.scherlies@pm.me
 -- category:
 -- extra-source-files: CHANGELOG.md
 
-executable get-next-version-x
+executable bumpi
   hs-source-dirs:   
     app
     src
