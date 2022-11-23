@@ -35,10 +35,13 @@ getNextVersionInteractive = do
 
   Cli.putLines
     [ el [] "Ok! Here is your version:"
-    , el [Cli.fgColor Cli.Red] ("  " <> v)
-    , el [Cli.fgColor Cli.Green] ("  " <> T.pack (show bumped))
+    , el [Cli.fgColor Cli.Red] ("  -" <> v)
+    , el [Cli.fgColor Cli.Green] ("  +" <> T.pack (show bumped))
+    , ""
+    , el [Cli.fgColor Cli.Green] "*** Saved to ./VERSION! ***"
     , ""
     ]
+
   return (show bumped)
 
 
