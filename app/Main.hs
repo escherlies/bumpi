@@ -1,6 +1,6 @@
 module Main where
 
-import Cli (el, line)
+import Cli (el)
 import qualified Cli
 import Data.String (IsString (fromString))
 import Data.Text (unpack)
@@ -9,13 +9,15 @@ import System.Process (readProcess)
 import Version (bump, showKeywords)
 
 
-main :: IO String
+main :: IO ()
 main =
-  gnv
+  do
+    nextVersion <- getNextVersionInteractive
+    writeFile "VERSION" nextVersion
 
 
-gnv :: IO String
-gnv = do
+getNextVersionInteractive :: IO String
+getNextVersionInteractive = do
   v <- T.strip <$> readProcessT "git" (words "describe --tags --abbrev=0") ""
   --     ^ strip newline
 
@@ -24,13 +26,17 @@ gnv = do
   printFriendlyUserMessage v commits
   bt <- getBumpType
   let bumped = bump (fromString bt) (fromString $ unpack v)
+
+  -- Clear user input
+  Cli.putLines
+    [ Cli.moveUp 2
+    , Cli.clearLine
+    ]
+
   Cli.putLines
     [ el [] "Ok! Here is your version:"
-    , line
-        []
-        [ el [] ("  " <> v <> " -> ")
-        , el [Cli.fgColor Cli.Green] (T.pack (show bumped))
-        ]
+    , el [Cli.fgColor Cli.Red] ("  " <> v)
+    , el [Cli.fgColor Cli.Green] ("  " <> T.pack (show bumped))
     , ""
     ]
   return (show bumped)
@@ -58,7 +64,7 @@ printFriendlyUserMessage :: T.Text -> T.Text -> IO ()
 printFriendlyUserMessage v cs =
   Cli.putLines
     [ "Current version:"
-    , Cli.el [Cli.fgColor Cli.Yellow] ("  " <> v)
+    , Cli.el [Cli.fgColor Cli.Blue] ("  " <> v)
     , ""
     , "Commits since last version"
     , Cli.el [] (T.unlines $ ("  " <>) <$> T.lines cs)

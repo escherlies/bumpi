@@ -69,6 +69,19 @@ sample =
       ]
 
 
+{- | Clears the current line where the cursor is at!
+
+    ? Or we could make a special Type that handles cursor controls or erase functions. Maybe a "layout" type
+-}
+clearLine :: Element
+clearLine = unstyled (esc <> "[2K")
+
+
+-- | TODO Add more curor controls
+moveUp :: Int -> Element
+moveUp n = unstyled $ esc <> "[" <> fromString (show n) <> "A"
+
+
 putStyledLn :: [Style] -> [Element] -> IO ()
 putStyledLn attrs = T.putStrLn . styled . line attrs
 
@@ -94,6 +107,10 @@ join' = foldr (<>) ""
 
 el :: [Style] -> Text -> Element
 el = Element
+
+
+unstyled :: Text -> Element
+unstyled = Element []
 
 
 styled :: Element -> Text
