@@ -1,6 +1,6 @@
 # Bumpi - a get next semantic version bump cli tool
 
-Interactivly get the next version based on your latest git version tag and your last commits:
+Interactivly get the next [semantic version](https://semver.org/) based on your latest git version tag and your last commits:
 
 ![Usage](./docs/Usage.png)
 
@@ -11,12 +11,33 @@ That's it!
 Binaries available soon!
 
 ```bash
-# Install
-cabal install
-
-# Run
+# Cd into your repository root and run
 get-next-version
 ```
+
+You can now review which version you are at, based on the latest git-tag.
+
+After that, you can decide how you want your next version to be by entering one of the following commands:
+
+| Bump to | Command | Alternatives         |
+| ------- | ------- | -------------------- |
+| Major   | `major` | `breaking, br, b, !` |
+| Minor   | `minor` | `feature, f`         |
+| Patch   | `patch` | `fix, x`             |
+
+The output will be safed into a `VERSION` file.
+
+# Install
+
+## Prerequisites
+
+1. Install [ghcup](https://www.haskell.org/ghcup/)
+2. Install `cabal` via `ghcup tui`
+
+## With cabal installed
+
+1. Clone this repo and cd into it
+2. Run `cabal install`
 
 # Motivation
 
