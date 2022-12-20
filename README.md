@@ -8,7 +8,7 @@ That's it!
 
 # Usage
 
-Binaries available soon!
+After installing:
 
 ```bash
 # Cd into your repository root and run
@@ -28,6 +28,8 @@ After that, you can decide how you want your next version to be by entering one 
 The output will be safed into a `VERSION` file.
 
 # Install
+
+Drop me a message if you want a precompiled binary.
 
 ## Prerequisites
 
