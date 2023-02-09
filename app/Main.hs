@@ -3,14 +3,16 @@
 
 module Main where
 
-import AppM (AppM, runAppM)
+import AppM (runAppM)
 import qualified Cli
 import Config (bump, parseArgs)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader.Class (MonadReader (ask))
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Reader (ask)
 import Data.String (IsString (fromString))
 import Data.Text (Text, unpack)
 import qualified Data.Text as T
+import Monad.App (MonadApp)
+import Monad.Version (MonadVersion)
 import System.Environment (getArgs)
 import System.Process (readProcess)
 import Version (Bump, Version, bump, showKeywords, toStringM, toTextM)
@@ -24,7 +26,7 @@ main =
     runAppM getNextVersion config
 
 
-getNextVersion :: AppM Text
+getNextVersion :: (MonadApp m) => m Text
 getNextVersion = do
   currentVersion <- getGitVersion
 
@@ -35,24 +37,24 @@ getNextVersion = do
 
 
 -- | Get latest git version tag
-getGitVersion :: AppM Version
+getGitVersion :: MonadIO m => m Version
 getGitVersion =
   do
-    versionText <- liftIO $ T.strip <$> readProcessAsText "git" (words "describe --tags --abbrev=0") ""
+    versionText <- T.strip <$> readProcessAsText "git" (words "describe --tags --abbrev=0") ""
     --            ^ strip newline
 
     pure $ fromString $ unpack versionText
 
 
-getNextVersionInteractive :: Version -> AppM Text
+getNextVersionInteractive :: (MonadIO m, MonadVersion m) => Version -> m Text
 getNextVersionInteractive currentVersion = do
   -- Get latest commits for the user to review
-  commits <- liftIO $ readProcessAsText "bash" ["-c", "git log $(git describe --tags --abbrev=0)..HEAD --oneline --pretty=\"%s\""] ""
+  commits <- readProcessAsText "bash" ["-c", "git log $(git describe --tags --abbrev=0)..HEAD --oneline --pretty=\"%s\""] ""
 
   printFriendlyUserMessage currentVersion commits
 
   -- Ask the user for the bump version arity
-  userInput <- liftIO askForBumpArity
+  userInput <- askForBumpArity
 
   -- Handle user input
   case userInput of
@@ -61,7 +63,7 @@ getNextVersionInteractive currentVersion = do
     _ -> bumpVersion currentVersion (fromString userInput)
 
 
-bumpVersion :: IsString b => Version -> Bump -> AppM b
+bumpVersion :: (MonadVersion m, MonadIO m, IsString b) => Version -> Bump -> m b
 bumpVersion currentVersion bumpTo =
   do
     versionText <- Version.toStringM currentVersion
@@ -73,14 +75,14 @@ bumpVersion currentVersion bumpTo =
     pure $ fromString versionText
 
 
-readProcessAsText :: FilePath -> [String] -> String -> IO T.Text
-readProcessAsText cmd arg stdin = T.pack <$> readProcess cmd arg stdin
+readProcessAsText :: (MonadIO m) => FilePath -> [String] -> String -> m Text
+readProcessAsText cmd arg stdin = liftIO $ T.pack <$> readProcess cmd arg stdin
 
 
 -- User IO
 
-askForBumpArity :: IO String
-askForBumpArity = do
+askForBumpArity :: MonadIO m => m String
+askForBumpArity = liftIO $ do
   Cli.putStyledLn
     []
     [ "Bump next version to "
@@ -93,11 +95,11 @@ askForBumpArity = do
   getLine
 
 
-bye :: AppM T.Text
+bye :: Applicative m => m Text
 bye = pure $ Cli.layout [Cli.fgColor Cli.Yellow] "Ok, aborting..."
 
 
-printFriendlyUserMessage :: Version -> T.Text -> AppM ()
+printFriendlyUserMessage :: (MonadVersion m, MonadIO m) => Version -> T.Text -> m ()
 printFriendlyUserMessage currentVersion cs =
   do
     currentVersionText <- Version.toTextM currentVersion
@@ -111,7 +113,7 @@ printFriendlyUserMessage currentVersion cs =
         ]
 
 
-showBumpedMessage :: Version -> Version -> AppM ()
+showBumpedMessage :: (MonadVersion m, MonadIO m) => Version -> Version -> m ()
 showBumpedMessage lastVersion bumpedVersion =
   do
     lastVersionText <- Version.toTextM lastVersion
