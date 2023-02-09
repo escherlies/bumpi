@@ -1,16 +1,12 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Version where
 
-import Control.Monad.RWS (MonadReader (ask))
 import Data.List (intersperse)
 import Data.String (IsString (fromString))
 import Data.Text (Text, pack)
-import GHC.Records (HasField (getField))
 import GHC.Utils.Misc (split)
+import Monad.Version (MonadVersion (getConfig))
 
 
 data Version
@@ -33,21 +29,15 @@ addPrefix :: String -> String
 addPrefix = ("v" <>)
 
 
-toStringM :: (MonadReader config m, HasField "prefixed" config Bool) => Version -> m String
+toStringM :: (MonadVersion m) => Version -> m String
 toStringM version =
   do
-    prefixed <- getPrefixedConfig
-    pure $ toStringPrefixed prefixed version
+    conf <- getConfig
+    pure $ toStringPrefixed conf version
 
 
-toTextM :: (MonadReader config m, HasField "prefixed" config Bool) => Version -> m Text
+toTextM :: (MonadVersion m) => Version -> m Text
 toTextM = fmap pack . toStringM
-
-
-getPrefixedConfig :: (MonadReader config m, HasField "prefixed" config Bool) => m Bool
-getPrefixedConfig = do
-  c <- ask
-  pure $ getField @"prefixed" c
 
 
 data Bump

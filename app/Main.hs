@@ -3,9 +3,9 @@
 
 module Main where
 
-import App (AppM, runAppM)
+import AppM (AppM, runAppM)
 import qualified Cli
-import Config (Config (bump, prefixed), parseArgs)
+import Config (bump, parseArgs)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader.Class (MonadReader (ask))
 import Data.String (IsString (fromString))

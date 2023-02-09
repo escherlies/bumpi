@@ -32,9 +32,11 @@ executable bumpi
   other-modules:
     Cli
     Version
-    App
+    AppM
     Utils
     Config
+    Monad.Version
+    Monad.App
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
