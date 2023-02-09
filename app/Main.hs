@@ -1,18 +1,19 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 
 module Main where
 
 import App (AppM, runAppM)
 import qualified Cli
-import Config (Config (bump), parseArgs)
-import Control.Monad.IO.Class (MonadIO, liftIO)
+import Config (Config (bump, prefixed), parseArgs)
+import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader.Class (MonadReader (ask))
 import Data.String (IsString (fromString))
-import Data.Text (Text, pack, unpack)
+import Data.Text (Text, unpack)
 import qualified Data.Text as T
 import System.Environment (getArgs)
 import System.Process (readProcess)
-import Version (Bump, Version, bump, showKeywords)
+import Version (Bump, Version, bump, showKeywords, toStringM, toTextM)
 
 
 main :: IO T.Text
@@ -33,10 +34,10 @@ getNextVersion = do
     Nothing -> getNextVersionInteractive currentVersion
 
 
+-- | Get latest git version tag
 getGitVersion :: AppM Version
 getGitVersion =
   do
-    -- Get latest git tag
     versionText <- liftIO $ T.strip <$> readProcessAsText "git" (words "describe --tags --abbrev=0") ""
     --            ^ strip newline
 
@@ -47,7 +48,8 @@ getNextVersionInteractive :: Version -> AppM Text
 getNextVersionInteractive currentVersion = do
   -- Get latest commits for the user to review
   commits <- liftIO $ readProcessAsText "bash" ["-c", "git log $(git describe --tags --abbrev=0)..HEAD --oneline --pretty=\"%s\""] ""
-  liftIO $ printFriendlyUserMessage (pack $ show currentVersion) commits
+
+  printFriendlyUserMessage currentVersion commits
 
   -- Ask the user for the bump version arity
   userInput <- liftIO askForBumpArity
@@ -59,15 +61,16 @@ getNextVersionInteractive currentVersion = do
     _ -> bumpVersion currentVersion (fromString userInput)
 
 
-bumpVersion :: (MonadIO m, IsString a) => Version -> Version.Bump -> m a
+bumpVersion :: IsString b => Version -> Bump -> AppM b
 bumpVersion currentVersion bumpTo =
-  liftIO $
-    do
-      -- Actually bump the version!
-      let bumped = Version.bump bumpTo currentVersion
-      showBumpedMessage currentVersion bumped
-      writeFile "VERSION" (show bumped)
-      return $ fromString $ show bumped
+  do
+    versionText <- Version.toStringM currentVersion
+    -- Actually bump the version!
+    let bumped = Version.bump bumpTo currentVersion
+
+    showBumpedMessage currentVersion bumped
+    liftIO $ writeFile "VERSION" versionText
+    pure $ fromString versionText
 
 
 readProcessAsText :: FilePath -> [String] -> String -> IO T.Text
@@ -94,30 +97,38 @@ bye :: AppM T.Text
 bye = pure $ Cli.layout [Cli.fgColor Cli.Yellow] "Ok, aborting..."
 
 
-printFriendlyUserMessage :: T.Text -> T.Text -> IO ()
-printFriendlyUserMessage v cs =
-  Cli.putLines
-    [ "Current version:"
-    , Cli.el [Cli.fgColor Cli.Blue] ("  " <> v)
-    , ""
-    , "Commits since last version"
-    , Cli.el [] (T.unlines $ ("  " <>) <$> T.lines cs)
-    ]
+printFriendlyUserMessage :: Version -> T.Text -> AppM ()
+printFriendlyUserMessage currentVersion cs =
+  do
+    currentVersionText <- Version.toTextM currentVersion
+    liftIO $
+      Cli.putLines
+        [ "Current version:"
+        , Cli.el [Cli.fgColor Cli.Blue] ("  " <> currentVersionText)
+        , ""
+        , "Commits since last version"
+        , Cli.el [] (T.unlines $ ("  " <>) <$> T.lines cs)
+        ]
 
 
-showBumpedMessage :: Version -> Version -> IO ()
-showBumpedMessage lastVersion bumpedVersion = do
-  -- Clear user input
-  Cli.putLines
-    [ Cli.moveUp 2
-    , Cli.clearLine
-    ]
+showBumpedMessage :: Version -> Version -> AppM ()
+showBumpedMessage lastVersion bumpedVersion =
+  do
+    lastVersionText <- Version.toTextM lastVersion
+    bumpedVersionText <- Version.toTextM bumpedVersion
 
-  Cli.putLines
-    [ Cli.el [] "Ok! Here is your version:"
-    , Cli.el [Cli.fgColor Cli.Red] ("  -" <> pack (show lastVersion))
-    , Cli.el [Cli.fgColor Cli.Green] ("  +" <> pack (show bumpedVersion))
-    , ""
-    , Cli.el [Cli.fgColor Cli.Green] "*** Saved to ./VERSION! ***"
-    , ""
-    ]
+    liftIO $ do
+      -- Clear user input
+      Cli.putLines
+        [ Cli.moveUp 2
+        , Cli.clearLine
+        ]
+
+      Cli.putLines
+        [ Cli.el [] "Ok! Here is your version:"
+        , Cli.el [Cli.fgColor Cli.Red] ("  -" <> lastVersionText)
+        , Cli.el [Cli.fgColor Cli.Green] ("  +" <> bumpedVersionText)
+        , ""
+        , Cli.el [Cli.fgColor Cli.Green] "*** Saved to ./VERSION! ***"
+        , ""
+        ]

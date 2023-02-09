@@ -1,9 +1,15 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Version where
 
+import Control.Monad.RWS (MonadReader (ask))
 import Data.List (intersperse)
 import Data.String (IsString (fromString))
+import Data.Text (Text, pack)
+import GHC.Records (HasField (getField))
 import GHC.Utils.Misc (split)
 
 
@@ -11,9 +17,37 @@ data Version
   = Version Int Int Int
 
 
-instance Show Version where
-  show :: Version -> String
-  show (Version major minor patch) = "v" <> show major <> "." <> show minor <> "." <> show patch
+toString :: Version -> String
+toString (Version major minor patch) =
+  show major <> "." <> show minor <> "." <> show patch
+
+
+toStringPrefixed :: Bool -> Version -> String
+toStringPrefixed prefixed =
+  if prefixed
+    then addPrefix . toString
+    else toString
+
+
+addPrefix :: String -> String
+addPrefix = ("v" <>)
+
+
+toStringM :: (MonadReader config m, HasField "prefixed" config Bool) => Version -> m String
+toStringM version =
+  do
+    prefixed <- getPrefixedConfig
+    pure $ toStringPrefixed prefixed version
+
+
+toTextM :: (MonadReader config m, HasField "prefixed" config Bool) => Version -> m Text
+toTextM = fmap pack . toStringM
+
+
+getPrefixedConfig :: (MonadReader config m, HasField "prefixed" config Bool) => m Bool
+getPrefixedConfig = do
+  c <- ask
+  pure $ getField @"prefixed" c
 
 
 data Bump

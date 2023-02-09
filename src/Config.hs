@@ -14,7 +14,7 @@ import Version (Bump)
 
 data Config = Config
   { bump :: Maybe Bump
-  , prefixV :: Bool
+  , prefixed :: Bool
   }
   deriving (Show)
 
@@ -23,12 +23,12 @@ parseArgs :: [String] -> IO Config
 parseArgs args =
   do
     let bumpArg = fromString <$> getValueOfArg "--bump=" args
-        prefixVArg = maybe True (read . capitalise) (getValueOfArg "--prefix-v=" args)
+        prefixVArg = maybe True (read . capitalise) (getValueOfArg "--prefixed=" args)
 
         config =
           Config
             { bump = bumpArg
-            , prefixV = prefixVArg
+            , prefixed = prefixVArg
             }
 
     print config
