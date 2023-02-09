@@ -12,7 +12,7 @@ After installing:
 
 ```bash
 # Cd into your repository root and run
-get-next-version
+bumpi
 ```
 
 You can now review which version you are at, based on the latest git-tag.
