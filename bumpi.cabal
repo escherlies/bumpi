@@ -31,6 +31,9 @@ executable bumpi
   other-modules:
     Cli
     Version
+    App
+    Utils
+    Config
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
@@ -53,6 +56,7 @@ executable bumpi
     , process
     , text
     , ghc
+    , mtl
   default-language: Haskell2010
 
 library
@@ -69,4 +73,5 @@ library
     , process
     , text
     , ghc
+    , mtl
   default-language: Haskell2010

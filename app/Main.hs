@@ -1,42 +1,73 @@
+{-# LANGUAGE OverloadedRecordDot #-}
+
 module Main where
 
-import Cli (el)
+import App (AppM, runAppM)
 import qualified Cli
+import Config (Config (bump), parseArgs)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Reader.Class (MonadReader (ask))
 import Data.String (IsString (fromString))
-import Data.Text (unpack)
+import Data.Text (Text, pack, unpack)
 import qualified Data.Text as T
+import System.Environment (getArgs)
 import System.Process (readProcess)
-import Version (Version, bump, showKeywords)
+import Version (Bump, Version, bump, showKeywords)
 
 
 main :: IO T.Text
-main = getNextVersionInteractive
+main =
+  do
+    args <- getArgs
+    config <- parseArgs args
+    runAppM getNextVersion config
 
 
-getNextVersionInteractive :: IO T.Text
-getNextVersionInteractive = do
-  -- Get latest git tag
-  v <- T.strip <$> readProcessAsText "git" (words "describe --tags --abbrev=0") ""
-  --     ^ strip newline
+getNextVersion :: AppM Text
+getNextVersion = do
+  currentVersion <- getGitVersion
 
+  config <- ask
+  case config.bump of
+    Just bumpTo -> bumpVersion currentVersion bumpTo
+    Nothing -> getNextVersionInteractive currentVersion
+
+
+getGitVersion :: AppM Version
+getGitVersion =
+  do
+    -- Get latest git tag
+    versionText <- liftIO $ T.strip <$> readProcessAsText "git" (words "describe --tags --abbrev=0") ""
+    --            ^ strip newline
+
+    pure $ fromString $ unpack versionText
+
+
+getNextVersionInteractive :: Version -> AppM Text
+getNextVersionInteractive currentVersion = do
   -- Get latest commits for the user to review
-  commits <- readProcessAsText "bash" ["-c", "git log $(git describe --tags --abbrev=0)..HEAD --oneline --pretty=\"%s\""] ""
-  printFriendlyUserMessage v commits
+  commits <- liftIO $ readProcessAsText "bash" ["-c", "git log $(git describe --tags --abbrev=0)..HEAD --oneline --pretty=\"%s\""] ""
+  liftIO $ printFriendlyUserMessage (pack $ show currentVersion) commits
 
   -- Ask the user for the bump version arity
-  userInput <- askForBumpArity
+  userInput <- liftIO askForBumpArity
 
   -- Handle user input
   case userInput of
     "q" -> bye
     ":q" -> bye
-    _ ->
-      do
-        -- Actually bump the version!
-        let bumped = bump (fromString userInput) (fromString $ unpack v)
-        showBumpedMessage v bumped
-        writeFile "VERSION" (show bumped)
-        return $ fromString $ show bumped
+    _ -> bumpVersion currentVersion (fromString userInput)
+
+
+bumpVersion :: (MonadIO m, IsString a) => Version -> Version.Bump -> m a
+bumpVersion currentVersion bumpTo =
+  liftIO $
+    do
+      -- Actually bump the version!
+      let bumped = Version.bump bumpTo currentVersion
+      showBumpedMessage currentVersion bumped
+      writeFile "VERSION" (show bumped)
+      return $ fromString $ show bumped
 
 
 readProcessAsText :: FilePath -> [String] -> String -> IO T.Text
@@ -59,8 +90,8 @@ askForBumpArity = do
   getLine
 
 
-bye :: IO T.Text
-bye = return $ Cli.layout [Cli.fgColor Cli.Yellow] "Ok, aborting..."
+bye :: AppM T.Text
+bye = pure $ Cli.layout [Cli.fgColor Cli.Yellow] "Ok, aborting..."
 
 
 printFriendlyUserMessage :: T.Text -> T.Text -> IO ()
@@ -74,8 +105,8 @@ printFriendlyUserMessage v cs =
     ]
 
 
-showBumpedMessage :: T.Text -> Version -> IO ()
-showBumpedMessage v bumped = do
+showBumpedMessage :: Version -> Version -> IO ()
+showBumpedMessage lastVersion bumpedVersion = do
   -- Clear user input
   Cli.putLines
     [ Cli.moveUp 2
@@ -83,10 +114,10 @@ showBumpedMessage v bumped = do
     ]
 
   Cli.putLines
-    [ el [] "Ok! Here is your version:"
-    , el [Cli.fgColor Cli.Red] ("  -" <> v)
-    , el [Cli.fgColor Cli.Green] ("  +" <> T.pack (show bumped))
+    [ Cli.el [] "Ok! Here is your version:"
+    , Cli.el [Cli.fgColor Cli.Red] ("  -" <> pack (show lastVersion))
+    , Cli.el [Cli.fgColor Cli.Green] ("  +" <> pack (show bumpedVersion))
     , ""
-    , el [Cli.fgColor Cli.Green] "*** Saved to ./VERSION! ***"
+    , Cli.el [Cli.fgColor Cli.Green] "*** Saved to ./VERSION! ***"
     , ""
     ]

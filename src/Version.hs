@@ -11,10 +11,16 @@ data Version
   = Version Int Int Int
 
 
+instance Show Version where
+  show :: Version -> String
+  show (Version major minor patch) = "v" <> show major <> "." <> show minor <> "." <> show patch
+
+
 data Bump
   = Major
   | Minor
   | Patch
+  deriving (Show)
 
 
 instance IsString Version where
@@ -46,11 +52,6 @@ minorKeywords = ["minor", "feature", "feat", "f"]
 
 patchKeywords :: [String]
 patchKeywords = ["patch", "fix", "x"]
-
-
-instance Show Version where
-  show :: Version -> String
-  show (Version major minor patch) = "v" <> show major <> "." <> show minor <> "." <> show patch
 
 
 dropPrefix :: String -> Version
