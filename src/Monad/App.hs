@@ -2,9 +2,9 @@
 
 module Monad.App where
 
-import Config (Config, MonadConfig)
-import Control.Monad.Reader (MonadReader)
-import Monad.Log (Config, MonadLog)
+import Control.Monad.IO.Class (MonadIO)
+import Monad.Config (MonadConfig)
+import Monad.Log (MonadLog)
 import Monad.Version (MonadVersion)
 
 
@@ -13,15 +13,6 @@ class
   , MonadVersion a
   , MonadConfig a
   , MonadLog a
-  , MonadConfigApp a
+  , MonadIO a
   ) =>
   MonadApp a
-
-
-class MonadReader AppConfig m => MonadConfigApp m
-
-
-data AppConfig = AppConfig
-  { cliCfg :: Config.Config
-  , logCfg :: Monad.Log.Config
-  }

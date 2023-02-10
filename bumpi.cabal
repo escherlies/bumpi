@@ -39,6 +39,7 @@ executable bumpi
     Monad.Version
     Monad.App
     Monad.Log
+    Monad.Config
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:

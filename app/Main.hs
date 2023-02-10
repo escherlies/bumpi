@@ -1,19 +1,19 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 
 module Main where
 
 import AppM (runAppM)
 import qualified Cli
-import Config (bump, parseArgs)
+import Config (parseArgs)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Reader (ask)
 import Data.String (IsString (fromString))
-import Data.Text (Text, unpack)
+import Data.Text (Text, pack, unpack)
 import qualified Data.Text as T
-import Monad.App (AppConfig (AppConfig, cliCfg, logCfg), MonadApp)
-import Monad.Log (Config (..), LogLevel (Info), MonadLog)
+import LogM (logInfo)
+import Monad.App (MonadApp)
+import Monad.Config (Config (bump), MonadConfig (getConfig))
+import Monad.Log (MonadLog)
 import Monad.Version (MonadVersion)
 import System.Environment (getArgs)
 import System.Process (readProcess)
@@ -23,24 +23,18 @@ import Version (Bump, Version, bump, showKeywords, toStringM, toTextM)
 main :: IO T.Text
 main =
   do
-    args <- getArgs
-    cliCfg <- parseArgs args
-    let logCfg = Monad.Log.Config {silent = False, logLevel = Info}
-    runAppM
-      getNextVersion
-      ( AppConfig
-          { cliCfg = cliCfg
-          , logCfg = logCfg
-          }
-      )
+    config <- parseArgs <$> getArgs
+    runAppM getNextVersion config
 
 
 getNextVersion :: (MonadApp m) => m Text
 getNextVersion = do
   currentVersion <- getGitVersion
+  cfg <- getConfig
 
-  (AppConfig {cliCfg}) <- ask
-  case cliCfg.bump of
+  logInfo (pack $ show cfg)
+
+  case cfg.bump of
     Just bumpTo -> bumpVersion currentVersion bumpTo
     Nothing -> getNextVersionInteractive currentVersion
 
@@ -55,7 +49,7 @@ getGitVersion =
     pure $ fromString $ unpack versionText
 
 
-getNextVersionInteractive :: (MonadLog m, MonadVersion m) => Version -> m Text
+getNextVersionInteractive :: (MonadLog m, MonadVersion m, MonadIO m) => Version -> m Text
 getNextVersionInteractive currentVersion = do
   -- Get latest commits for the user to review
   commits <- readProcessAsText "bash" ["-c", "git log $(git describe --tags --abbrev=0)..HEAD --oneline --pretty=\"%s\""] ""
@@ -108,7 +102,7 @@ bye :: Applicative m => m Text
 bye = pure $ Cli.layout [Cli.fgColor Cli.Yellow] "Ok, aborting..."
 
 
-printFriendlyUserMessage :: (MonadVersion m, MonadLog m) => Version -> T.Text -> m ()
+printFriendlyUserMessage :: (MonadVersion m, MonadIO m) => Version -> T.Text -> m ()
 printFriendlyUserMessage currentVersion cs =
   do
     currentVersionText <- Version.toTextM currentVersion

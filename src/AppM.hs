@@ -3,37 +3,40 @@
 
 module AppM where
 
-import Config (Config (prefixed), MonadConfig, prefixed)
 import Control.Monad.Cont (MonadIO)
-import Control.Monad.Reader (MonadReader, ReaderT (runReaderT), asks)
-import Monad.App (AppConfig (cliCfg, logCfg), MonadApp, MonadConfigApp)
-import Monad.Log (Config, MonadLog (getConfig))
+import Control.Monad.Reader (MonadReader (ask), ReaderT (runReaderT), asks)
+import Monad.App (MonadApp)
+import Monad.Config (Config (logger, prefixed), MonadConfig (..))
+import Monad.Log (Config, MonadLog (..))
 import Monad.Version (MonadVersion (..))
 import Prelude hiding (log)
 
 
-newtype AppM a = AppM (ReaderT AppConfig IO a)
+newtype AppM a = AppM (ReaderT Monad.Config.Config IO a)
   deriving
     ( Functor
     , Applicative
     , Monad
-    , MonadConfig
-    , MonadReader AppConfig
     , MonadIO
-    , MonadConfigApp
+    , MonadReader Monad.Config.Config
     , MonadApp
     )
 
 
-runAppM :: AppM a -> AppConfig -> IO a
+runAppM :: AppM a -> Monad.Config.Config -> IO a
 runAppM (AppM rt) = runReaderT rt
+
+
+instance MonadConfig AppM where
+  getConfig :: AppM Monad.Config.Config
+  getConfig = ask
 
 
 instance MonadVersion AppM where
   getConfig :: AppM Bool
-  getConfig = asks (Config.prefixed . cliCfg)
+  getConfig = asks Monad.Config.prefixed
 
 
 instance MonadLog AppM where
   getConfig :: AppM Monad.Log.Config
-  getConfig = asks logCfg
+  getConfig = asks Monad.Config.logger
