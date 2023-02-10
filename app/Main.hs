@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 
 module Main where
@@ -11,7 +12,8 @@ import Control.Monad.Reader (ask)
 import Data.String (IsString (fromString))
 import Data.Text (Text, unpack)
 import qualified Data.Text as T
-import Monad.App (MonadApp)
+import Monad.App (AppConfig (AppConfig, cliCfg, logCfg), MonadApp)
+import Monad.Log (Config (..), LogLevel (Info), MonadLog)
 import Monad.Version (MonadVersion)
 import System.Environment (getArgs)
 import System.Process (readProcess)
@@ -22,16 +24,23 @@ main :: IO T.Text
 main =
   do
     args <- getArgs
-    config <- parseArgs args
-    runAppM getNextVersion config
+    cliCfg <- parseArgs args
+    let logCfg = Monad.Log.Config {silent = False, logLevel = Info}
+    runAppM
+      getNextVersion
+      ( AppConfig
+          { cliCfg = cliCfg
+          , logCfg = logCfg
+          }
+      )
 
 
 getNextVersion :: (MonadApp m) => m Text
 getNextVersion = do
   currentVersion <- getGitVersion
 
-  config <- ask
-  case config.bump of
+  (AppConfig {cliCfg}) <- ask
+  case cliCfg.bump of
     Just bumpTo -> bumpVersion currentVersion bumpTo
     Nothing -> getNextVersionInteractive currentVersion
 
@@ -46,7 +55,7 @@ getGitVersion =
     pure $ fromString $ unpack versionText
 
 
-getNextVersionInteractive :: (MonadIO m, MonadVersion m) => Version -> m Text
+getNextVersionInteractive :: (MonadLog m, MonadVersion m) => Version -> m Text
 getNextVersionInteractive currentVersion = do
   -- Get latest commits for the user to review
   commits <- readProcessAsText "bash" ["-c", "git log $(git describe --tags --abbrev=0)..HEAD --oneline --pretty=\"%s\""] ""
@@ -99,7 +108,7 @@ bye :: Applicative m => m Text
 bye = pure $ Cli.layout [Cli.fgColor Cli.Yellow] "Ok, aborting..."
 
 
-printFriendlyUserMessage :: (MonadVersion m, MonadIO m) => Version -> T.Text -> m ()
+printFriendlyUserMessage :: (MonadVersion m, MonadLog m) => Version -> T.Text -> m ()
 printFriendlyUserMessage currentVersion cs =
   do
     currentVersionText <- Version.toTextM currentVersion

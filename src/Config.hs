@@ -3,7 +3,6 @@
 module Config where
 
 import Control.Monad ((<=<))
-import Control.Monad.Reader (MonadReader)
 import Data.List (find, isPrefixOf, stripPrefix)
 import Data.Maybe (isJust)
 import Data.String (fromString)
@@ -12,7 +11,7 @@ import Utils ((...))
 import Version (Bump)
 
 
-class MonadReader Config m => MonadConfig m
+class Monad m => MonadConfig m
 
 
 data Config = Config
