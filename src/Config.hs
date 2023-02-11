@@ -8,7 +8,7 @@ import Data.Maybe (isJust)
 import Data.String (fromString)
 import GHC.Plugins (capitalise)
 import Monad.Config (Config (..))
-import Monad.Log (Config (Config, logLevel, silent), LogLevel (Info))
+import Monad.Log (Level (Info, Silent), Log (Log))
 import Utils ((...))
 
 
@@ -17,18 +17,17 @@ parseArgs args =
   do
     let bumpArg = fromString <$> getValueOfArg "--bump=" args
         prefixVArg = maybe True (read . capitalise) (getValueOfArg "--prefixed=" args)
+
+        -- Shorthand for --log-level=silent
         silentArg = hasFlag "--silent" args
-        logLevelArg = maybe Info (read . capitalise) (getValueOfArg "--log-level=" args)
+        defaultLoglevel = if silentArg then Silent else Info
+        logLevelArg = maybe defaultLoglevel (read . capitalise) (getValueOfArg "--log-level=" args)
 
         config =
           Monad.Config.Config
             { bump = bumpArg
             , prefixed = prefixVArg
-            , logger =
-                Monad.Log.Config
-                  { silent = silentArg
-                  , logLevel = logLevelArg
-                  }
+            , logger = Log logLevelArg
             }
     config
 

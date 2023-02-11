@@ -4,17 +4,16 @@ module Monad.Log where
 
 
 class (Monad m) => MonadLog m where
-  getConfig :: m Config
+  getConfig :: m Log
 
 
-data Config = Config
-  { logLevel :: LogLevel
-  , silent :: Bool
-  }
+newtype Log
+  = Log Level
   deriving (Show)
 
 
-data LogLevel
-  = Info
+data Level
+  = Silent
+  | Info
   | Warn
   deriving (Eq, Ord, Show, Read)

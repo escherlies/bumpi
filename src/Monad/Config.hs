@@ -11,6 +11,6 @@ class Monad m => MonadConfig m where
 data Config = Config
   { bump :: Maybe Bump
   , prefixed :: Bool
-  , logger :: Monad.Log.Config
+  , logger :: Monad.Log.Log
   }
   deriving (Show)
