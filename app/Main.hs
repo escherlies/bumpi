@@ -4,7 +4,6 @@
 module Main where
 
 import AppM (runAppM)
-import Cli (columnLayout, layout)
 import qualified Cli
 import Config (parseArgs)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -108,7 +107,7 @@ printFriendlyUserMessage currentVersion cs =
   do
     currentVersionText <- Version.toTextM currentVersion
     log $
-      columnLayout
+      Cli.columnLayout
         []
         [ "Current version:"
         , Cli.el [Cli.fgColor Cli.Blue] ("  " <> currentVersionText)
@@ -126,14 +125,14 @@ showBumpedMessage lastVersion bumpedVersion =
 
     -- Clear user input
     log $
-      columnLayout
+      Cli.columnLayout
         []
         [ Cli.moveUp 2
         , Cli.clearLine
         ]
 
     log $
-      columnLayout
+      Cli.columnLayout
         []
         [ Cli.el [] "Ok! Here is your version:"
         , Cli.el [Cli.fgColor Cli.Red] ("  -" <> lastVersionText)
