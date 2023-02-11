@@ -1,13 +1,12 @@
 module LogM (logInfo, logWarn, logInfoStyled) where
 
 import qualified Cli
-import Control.Monad.Reader (MonadIO (liftIO))
 import Data.Text (Text)
-import Monad.Log (Level (..), Log (Log), MonadLog (getConfig))
+import Monad.Log (Level (..), Log (Log), MonadLog (getConfig, log))
 import Prelude hiding (log)
 
 
-logWith :: (MonadLog m, MonadIO m) => Level -> [Cli.Style] -> Text -> m ()
+logWith :: (MonadLog m) => Level -> [Cli.Style] -> Text -> m ()
 logWith givenLoglevel attrs text =
   do
     (Log level) <- getConfig
@@ -16,7 +15,7 @@ logWith givenLoglevel attrs text =
       else prettyLog givenLoglevel attrs text
 
 
-prettyLog :: MonadIO m => Level -> [Cli.Style] -> Text -> m ()
+prettyLog :: (MonadLog m) => Level -> [Cli.Style] -> Text -> m ()
 prettyLog loglevel attrs text =
   case loglevel of
     Silent ->
@@ -27,17 +26,17 @@ prettyLog loglevel attrs text =
       prettyPut Cli.Yellow attrs text
 
 
-prettyPut :: MonadIO m => Cli.Color -> [Cli.Style] -> Text -> m ()
-prettyPut color attrs text = liftIO $ Cli.putStyledLn ([Cli.fgColor color] <> attrs) [Cli.el [] text]
+prettyPut :: (MonadLog m) => Cli.Color -> [Cli.Style] -> Text -> m ()
+prettyPut color attrs text = log $ Cli.layout ([Cli.fgColor color] <> attrs) (Cli.el [] text)
 
 
-logInfo :: (MonadLog m, MonadIO m) => Text -> m ()
+logInfo :: (MonadLog m) => Text -> m ()
 logInfo = logWith Info []
 
 
-logInfoStyled :: (MonadLog m, MonadIO m) => [Cli.Style] -> Text -> m ()
+logInfoStyled :: (MonadLog m) => [Cli.Style] -> Text -> m ()
 logInfoStyled = logWith Info
 
 
-logWarn :: (MonadLog m, MonadIO m) => Text -> m ()
+logWarn :: (MonadLog m) => Text -> m ()
 logWarn = logWith Warn []

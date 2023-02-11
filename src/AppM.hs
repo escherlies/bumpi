@@ -3,8 +3,10 @@
 
 module AppM where
 
-import Control.Monad.Cont (MonadIO)
+import Control.Monad.Cont (MonadIO (liftIO))
 import Control.Monad.Reader (MonadReader (ask), ReaderT (runReaderT), asks)
+import Data.Text (Text)
+import Data.Text.IO (putStrLn)
 import Monad.App (MonadApp)
 import Monad.Config (Config (logger, prefixed), MonadConfig (..))
 import Monad.Log (Log, MonadLog (..))
@@ -40,3 +42,7 @@ instance MonadVersion AppM where
 instance MonadLog AppM where
   getConfig :: AppM Monad.Log.Log
   getConfig = asks Monad.Config.logger
+
+
+  log :: Text -> AppM ()
+  log = liftIO . Data.Text.IO.putStrLn
