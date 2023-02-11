@@ -9,9 +9,10 @@ import Config (parseArgs)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.String (IsString (fromString))
 import Data.Text (Text, lines, pack, strip, unlines, unpack)
+import qualified Data.Text.IO as Text
 import Monad.App (MonadApp)
 import Monad.Config (Config (bump), MonadConfig (getConfig))
-import Monad.Log (MonadLog, log, logInfo)
+import Monad.Log (MonadLog, logInfo)
 import Monad.Version (MonadVersion)
 import System.Environment (getArgs)
 import System.Process (readProcess)
@@ -19,11 +20,13 @@ import Version (Bump, Version, bump, showKeywords, toStringM, toTextM)
 import Prelude hiding (log)
 
 
-main :: IO Text
+main :: IO ()
 main =
   do
     config <- parseArgs <$> getArgs
-    runAppM getNextVersion config
+    version <- runAppM getNextVersion config
+    Text.putStrLn version
+    pure ()
 
 
 getNextVersion :: (MonadApp m) => m Text
@@ -68,9 +71,9 @@ getNextVersionInteractive currentVersion = do
 bumpVersion :: (MonadVersion m, IsString b, MonadLog m, MonadIO m) => Version -> Bump -> m b
 bumpVersion currentVersion bumpTo =
   do
-    versionText <- Version.toStringM currentVersion
     -- Actually bump the version!
     let bumped = Version.bump bumpTo currentVersion
+    versionText <- Version.toStringM bumped
 
     showBumpedMessage currentVersion bumped
     liftIO $ writeFile "VERSION" versionText
@@ -83,18 +86,19 @@ readProcessAsText cmd arg stdin = liftIO $ pack <$> readProcess cmd arg stdin
 
 -- User IO
 
-askForBumpArity :: MonadIO m => m String
-askForBumpArity = liftIO $ do
-  Cli.putStyledLn
-    []
-    [ "Bump next version to "
-    , Cli.el
-        [Cli.dim]
-        ("(" <> fromString showKeywords <> ")")
-    , ":"
-    ]
+askForBumpArity :: (MonadLog m, MonadIO m) => m String
+askForBumpArity = do
+  logInfo $
+    Cli.columnLayout
+      []
+      [ "Bump next version to "
+      , Cli.el
+          [Cli.dim]
+          ("(" <> fromString showKeywords <> ")")
+      , ":"
+      ]
 
-  getLine
+  liftIO getLine
 
 
 bye :: Applicative m => m Text
@@ -105,7 +109,7 @@ printFriendlyUserMessage :: (MonadVersion m, MonadLog m) => Version -> Text -> m
 printFriendlyUserMessage currentVersion cs =
   do
     currentVersionText <- Version.toTextM currentVersion
-    log $
+    logInfo $
       Cli.columnLayout
         []
         [ "Current version:"
@@ -123,14 +127,14 @@ showBumpedMessage lastVersion bumpedVersion =
     bumpedVersionText <- Version.toTextM bumpedVersion
 
     -- Clear user input
-    log $
+    logInfo $
       Cli.columnLayout
         []
         [ Cli.moveUp 2
         , Cli.clearLine
         ]
 
-    log $
+    logInfo $
       Cli.columnLayout
         []
         [ Cli.el [] "Ok! Here is your version:"

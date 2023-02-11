@@ -2,9 +2,9 @@
 
 module Config where
 
-import Control.Monad ((<=<))
+import Control.Monad (when, (<=<))
 import Data.List (find, isPrefixOf, stripPrefix)
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, isNothing)
 import Data.String (fromString)
 import GHC.Plugins (capitalise)
 import Monad.Config (Config (..))
@@ -29,7 +29,10 @@ parseArgs args =
             , prefixed = prefixVArg
             , logger = Log logLevelArg
             }
-    config
+
+    if silentArg && isNothing bumpArg
+      then error "Cannot use silent in cli mode."
+      else config
 
 
 hasFlag :: Foldable t => String -> t String -> Bool

@@ -9,7 +9,7 @@ import Data.Text (Text)
 import Data.Text.IO (putStrLn)
 import Monad.App (MonadApp)
 import Monad.Config (Config (logger, prefixed), MonadConfig (..))
-import Monad.Log (Log, MonadLog (..))
+import Monad.Log (Level, Log, MonadLog (..), logDefault)
 import Monad.Version (MonadVersion (..))
 import Prelude hiding (log)
 
@@ -44,5 +44,9 @@ instance MonadLog AppM where
   getConfig = asks Monad.Config.logger
 
 
-  log :: Text -> AppM ()
-  log = liftIO . Data.Text.IO.putStrLn
+  logLevel :: Level -> Text -> AppM ()
+  logLevel = logDefault
+
+
+  put :: Text -> AppM ()
+  put = liftIO . Data.Text.IO.putStrLn

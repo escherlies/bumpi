@@ -9,7 +9,8 @@ import Prelude hiding (log)
 
 class Monad m => MonadLog m where
   getConfig :: m Log
-  log :: Text -> m ()
+  logLevel :: Level -> Text -> m ()
+  put :: Text -> m ()
 
 
 newtype Log
@@ -18,14 +19,19 @@ newtype Log
 
 
 data Level
-  = Silent
-  | Info
-  | Warn
+  = Debug -- Everything
+  | Info -- Info and warnings
+  | Warn -- Only warnings
+  | Silent -- Nothing
   deriving (Eq, Ord, Show, Read)
 
 
-logWith :: (MonadLog m) => Level -> [Cli.Style] -> Text -> m ()
-logWith givenLoglevel attrs text =
+logDefault :: MonadLog m => Level -> Text -> m ()
+logDefault = logWithSytle []
+
+
+logWithSytle :: (MonadLog m) => [Cli.Style] -> Level -> Text -> m ()
+logWithSytle attrs givenLoglevel text =
   do
     (Log level) <- getConfig
     if givenLoglevel < level
@@ -42,19 +48,21 @@ prettyLog loglevel attrs text =
       prettyPut Cli.Black attrs text
     Warn ->
       prettyPut Cli.Yellow attrs text
+    Debug ->
+      prettyPut Cli.Blue attrs text
 
 
-prettyPut :: (MonadLog m) => Cli.Color -> [Cli.Style] -> Text -> m ()
-prettyPut color attrs text = log $ Cli.layout ([Cli.fgColor color] <> attrs) (Cli.el [] text)
+prettyPut :: MonadLog m => Cli.Color -> [Cli.Style] -> Text -> m ()
+prettyPut color attrs text = put $ Cli.layout ([Cli.fgColor color] <> attrs) (Cli.el [] text)
 
 
-logInfo :: (MonadLog m) => Text -> m ()
-logInfo = logWith Info []
+logInfo :: MonadLog m => Text -> m ()
+logInfo = logLevel Info
 
 
 logInfoStyled :: (MonadLog m) => [Cli.Style] -> Text -> m ()
-logInfoStyled = logWith Info
+logInfoStyled s = logWithSytle s Info
 
 
 logWarn :: (MonadLog m) => Text -> m ()
-logWarn = logWith Warn []
+logWarn = logLevel Warn
