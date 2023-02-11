@@ -8,7 +8,7 @@ import Control.Monad.Reader (MonadReader (ask), ReaderT (runReaderT), asks)
 import Data.Text (Text)
 import Data.Text.IO (putStrLn)
 import Monad.App (MonadApp)
-import Monad.Config (Config (logger, prefixed), MonadConfig (..))
+import Monad.Config (Config (log, prefixed), MonadConfig (..))
 import Monad.Log (Level, Log, MonadLog (..), logDefault)
 import Monad.Version (MonadVersion (..))
 import Prelude hiding (log)
@@ -41,7 +41,7 @@ instance MonadVersion AppM where
 
 instance MonadLog AppM where
   getConfig :: AppM Monad.Log.Log
-  getConfig = asks Monad.Config.logger
+  getConfig = asks Monad.Config.log
 
 
   logLevel :: Level -> Text -> AppM ()

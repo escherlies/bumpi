@@ -11,6 +11,13 @@ class Monad m => MonadConfig m where
 data Config = Config
   { bump :: Maybe Bump
   , prefixed :: Bool
-  , logger :: Monad.Log.Log
+  , log :: Monad.Log.Log
+  , output :: Output
   }
   deriving (Show)
+
+
+data Output
+  = File
+  | Cli
+  deriving (Read, Show)
