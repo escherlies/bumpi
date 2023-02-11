@@ -3,39 +3,39 @@
 module Config where
 
 import Control.Monad ((<=<))
-import Control.Monad.Reader (MonadReader)
 import Data.List (find, isPrefixOf, stripPrefix)
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, isNothing)
 import Data.String (fromString)
 import GHC.Plugins (capitalise)
+import Monad.Config (Config (..), Output (File))
+import Monad.Log (Level (Info, Silent), Log (Log))
 import Utils ((...))
-import Version (Bump)
+import Prelude hiding (log)
 
 
-class MonadReader Config m => MonadConfig m
-
-
-data Config = Config
-  { bump :: Maybe Bump
-  , prefixed :: Bool
-  }
-  deriving (Show)
-
-
-parseArgs :: [String] -> IO Config
+parseArgs :: [String] -> Monad.Config.Config
 parseArgs args =
   do
     let bumpArg = fromString <$> getValueOfArg "--bump=" args
         prefixVArg = maybe True (read . capitalise) (getValueOfArg "--prefixed=" args)
+        outputArg = maybe File (read . capitalise) (getValueOfArg "--output=" args)
+
+        -- Shorthand for --log-level=silent
+        silentArg = hasFlag "--silent" args
+        defaultLoglevel = if silentArg then Silent else Info
+        logLevelArg = maybe defaultLoglevel (read . capitalise) (getValueOfArg "--log-level=" args)
 
         config =
-          Config
+          Monad.Config.Config
             { bump = bumpArg
             , prefixed = prefixVArg
+            , log = Log logLevelArg
+            , output = outputArg
             }
 
-    print config
-    pure config
+    if silentArg && isNothing bumpArg
+      then error "Cannot use silent in cli mode."
+      else config
 
 
 hasFlag :: Foldable t => String -> t String -> Bool

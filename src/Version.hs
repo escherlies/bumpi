@@ -4,7 +4,6 @@ module Version where
 
 import Data.List (intersperse)
 import Data.String (IsString (fromString))
-import Data.Text (Text, pack)
 import GHC.Utils.Misc (split)
 import Monad.Version (MonadVersion (getConfig))
 
@@ -29,15 +28,11 @@ addPrefix :: String -> String
 addPrefix = ("v" <>)
 
 
-toStringM :: (MonadVersion m) => Version -> m String
-toStringM version =
+format :: (MonadVersion m) => Version -> m String
+format version =
   do
     conf <- getConfig
     pure $ toStringPrefixed conf version
-
-
-toTextM :: (MonadVersion m) => Version -> m Text
-toTextM = fmap pack . toStringM
 
 
 data Bump

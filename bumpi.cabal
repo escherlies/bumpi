@@ -32,11 +32,13 @@ executable bumpi
   other-modules:
     Cli
     Version
-    AppM
     Utils
     Config
+    AppM
     Monad.Version
     Monad.App
+    Monad.Log
+    Monad.Config
 
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
@@ -55,24 +57,6 @@ executable bumpi
   default-extensions:
       OverloadedStrings
   build-depends:    
-      base ^>=4.16.3.0
-    , process
-    , text
-    , ghc
-    , mtl
-  default-language: Haskell2010
-
-library
-  exposed-modules:
-      Cli
-      Version
-  hs-source-dirs:
-      src
-      libs
-  default-extensions:
-      OverloadedStrings
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
-  build-depends:
       base ^>=4.16.3.0
     , process
     , text
