@@ -1,4 +1,4 @@
-module Sample where
+module Cli.Sample where
 
 
 putSample :: IO ()

@@ -11,6 +11,7 @@ import Data.List (intersperse)
 import Data.String (IsString (fromString))
 import Data.Text as T (Text, pack, unpack)
 import qualified Data.Text.IO as T
+import Utils ((...))
 
 
 newtype Style = Style Text
@@ -75,6 +76,10 @@ putLines = T.putStrLn . layout [] . column []
 
 layout :: [Style] -> Element -> Text
 layout = applyStylesWith
+
+
+columnLayout :: [Style] -> [Element] -> Text
+columnLayout = layout [] ... column
 
 
 column :: [Style] -> [Element] -> Element

@@ -4,23 +4,24 @@
 module Main where
 
 import AppM (runAppM)
+import Cli (columnLayout, layout)
 import qualified Cli
 import Config (parseArgs)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.String (IsString (fromString))
-import Data.Text (Text, pack, unpack)
-import qualified Data.Text as T
+import Data.Text (Text, lines, pack, strip, unlines, unpack)
 import LogM (logInfo)
 import Monad.App (MonadApp)
 import Monad.Config (Config (bump), MonadConfig (getConfig))
-import Monad.Log (MonadLog)
+import Monad.Log (MonadLog, log)
 import Monad.Version (MonadVersion)
 import System.Environment (getArgs)
 import System.Process (readProcess)
 import Version (Bump, Version, bump, showKeywords, toStringM, toTextM)
+import Prelude hiding (log)
 
 
-main :: IO T.Text
+main :: IO Text
 main =
   do
     config <- parseArgs <$> getArgs
@@ -43,8 +44,8 @@ getNextVersion = do
 getGitVersion :: MonadIO m => m Version
 getGitVersion =
   do
-    versionText <- T.strip <$> readProcessAsText "git" (words "describe --tags --abbrev=0") ""
-    --            ^ strip newline
+    versionText <- strip <$> readProcessAsText "git" (words "describe --tags --abbrev=0") ""
+    --             ^ strip newline
 
     pure $ fromString $ unpack versionText
 
@@ -66,7 +67,7 @@ getNextVersionInteractive currentVersion = do
     _ -> bumpVersion currentVersion (fromString userInput)
 
 
-bumpVersion :: (MonadVersion m, MonadIO m, IsString b) => Version -> Bump -> m b
+bumpVersion :: (MonadVersion m, IsString b, MonadLog m, MonadIO m) => Version -> Bump -> m b
 bumpVersion currentVersion bumpTo =
   do
     versionText <- Version.toStringM currentVersion
@@ -79,7 +80,7 @@ bumpVersion currentVersion bumpTo =
 
 
 readProcessAsText :: (MonadIO m) => FilePath -> [String] -> String -> m Text
-readProcessAsText cmd arg stdin = liftIO $ T.pack <$> readProcess cmd arg stdin
+readProcessAsText cmd arg stdin = liftIO $ pack <$> readProcess cmd arg stdin
 
 
 -- User IO
@@ -102,34 +103,38 @@ bye :: Applicative m => m Text
 bye = pure $ Cli.layout [Cli.fgColor Cli.Yellow] "Ok, aborting..."
 
 
-printFriendlyUserMessage :: (MonadVersion m, MonadIO m) => Version -> T.Text -> m ()
+printFriendlyUserMessage :: (MonadVersion m, MonadLog m) => Version -> Text -> m ()
 printFriendlyUserMessage currentVersion cs =
   do
     currentVersionText <- Version.toTextM currentVersion
-    liftIO $
-      Cli.putLines
+    log $
+      columnLayout
+        []
         [ "Current version:"
         , Cli.el [Cli.fgColor Cli.Blue] ("  " <> currentVersionText)
         , ""
         , "Commits since last version"
-        , Cli.el [] (T.unlines $ ("  " <>) <$> T.lines cs)
+        , Cli.el [] (Data.Text.unlines $ ("  " <>) <$> Data.Text.lines cs)
         ]
 
 
-showBumpedMessage :: (MonadVersion m, MonadIO m) => Version -> Version -> m ()
+showBumpedMessage :: (MonadVersion m, MonadLog m) => Version -> Version -> m ()
 showBumpedMessage lastVersion bumpedVersion =
   do
     lastVersionText <- Version.toTextM lastVersion
     bumpedVersionText <- Version.toTextM bumpedVersion
 
-    liftIO $ do
-      -- Clear user input
-      Cli.putLines
+    -- Clear user input
+    log $
+      columnLayout
+        []
         [ Cli.moveUp 2
         , Cli.clearLine
         ]
 
-      Cli.putLines
+    log $
+      columnLayout
+        []
         [ Cli.el [] "Ok! Here is your version:"
         , Cli.el [Cli.fgColor Cli.Red] ("  -" <> lastVersionText)
         , Cli.el [Cli.fgColor Cli.Green] ("  +" <> bumpedVersionText)
