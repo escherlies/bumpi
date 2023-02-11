@@ -35,7 +35,6 @@ executable bumpi
     Utils
     Config
     AppM
-    LogM
     Monad.Version
     Monad.App
     Monad.Log
